@@ -1,40 +1,70 @@
 from torchtext import data
+import torch
 from torchtext import datasets
-from torchtext.vocab import GloVe
+import torch.optim as optim
+import torch.nn.functional as F
+import model
+import time
+
+max_sequence_length = 200
+device = 'cuda'
+print("Loading IMDB dataset...")
+sentence_field = data.Field(lower=True, include_lengths=True, batch_first=True, fix_length=max_sequence_length)
+label_field = data.Field(sequential=False)
+
+train, test = datasets.IMDB.splits(sentence_field, label_field)
+sentence_field.build_vocab(train)
+label_field.build_vocab(train)
+# print vocab information
+print('len(TEXT.vocab)', len(sentence_field.vocab))
+# print('TEXT.vocab.vectors.size()', sentence_field.vocab.vectors.size())
+print('labels ', len(label_field.vocab))
+print('Labels: ', label_field.vocab.itos)  # index to string
 
 
-def load_imdb_data():
-    print("Loading IMDB dataset...")
-    sentence_field = data.Field(lower=True, include_lengths=True, batch_first=True, fix_length=200)
-    label_field = data.Field(sequential=False)
+batch_size = 12
 
-    train, test = datasets.IMDB.splits(sentence_field, label_field)
-    sentence_field.build_vocab(train, vectors=GloVe(name='6B', dim=300))
-    label_field.build_vocab(train)
-    # print vocab information
-    print('len(TEXT.vocab)', len(sentence_field.vocab))
-    print('TEXT.vocab.vectors.size()', sentence_field.vocab.vectors.size())
-    print('labels ', len(label_field.vocab))
-    print('Labels: ', label_field.vocab.itos)  # index to string
+train_iter, test_iter = data.BucketIterator.splits((train, test), batch_size=batch_size, device=device, repeat=False,
+                                                   shuffle=False)
 
-    train_iter, test_iter = data.BucketIterator.splits((train, test), batch_size=32, device='cpu', repeat=False,
-                                                       shuffle=True)
+vocab_size = len(sentence_field.vocab)
 
-    return train_iter, test_iter
+model = model.TransformerEncoder(vocab_size, max_sequence_length, batch_size)
 
+if device == 'cuda':
+    print('using cuda')
+    model.cuda()
 
-train, test = load_imdb_data()
+model.train()
+learnable_params = filter(lambda param: param.requires_grad, model.parameters())
+optimizer = optim.Adam(learnable_params)
+optimizer.zero_grad()
+loss_function = F.cross_entropy
 
-print(type(train))
+epoch = 200
 
-for epoch, batch in enumerate(train):
-    #print(batch)
-    import model
-    n = model.Neural()
-    n.forward(batch.text)
-    break
+print('current memory allocated: {}'.format(torch.cuda.memory_allocated() / 1024 ** 2))
+print('max memory allocated: {}'.format(torch.cuda.max_memory_allocated() / 1024 ** 2))
+print('cached memory: {}'.format(torch.cuda.memory_cached() / 1024 ** 2))
 
-#batch = next(iter(train))
-#print(type(batch.text[0]))
-#text = batch.text[0]
-#print('batch size:', text.size())
+for i in range(epoch):
+    for epoch, batch in enumerate(train_iter):
+        start = time.time()
+        input_tensor = batch.text[0]
+        predicted = model(input_tensor)
+        # print('predicted:', predicted)
+        #print("----------")
+        # print('label', batch.label)
+        label = batch.label
+        loss = loss_function(predicted, label)
+
+        loss.backward()
+
+        optimizer.step()
+        if epoch % 100 == 0:
+            if torch.cuda.is_available():
+                print("%d iteration %d epoch with loss : %.5f in %.4f seconds" % (
+                    i, epoch, loss.cpu().item(), time.time() - start))
+            else:
+                print("%d iteration %d epoch with loss : %.5f in %.4f seconds" % (
+                    i, epoch, loss.data.numpy()[0], time.time() - start))

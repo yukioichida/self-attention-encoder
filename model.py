@@ -9,6 +9,7 @@ class ScaledDotProductAttention(nn.Module):
 
     def __init__(self, dim_model):
         # root square of dimension size
+        super(ScaledDotProductAttention, self).__init__()
         self.temper = np.power(dim_model, 0.5)
         self.softmax = nn.Softmax()
 
@@ -28,7 +29,8 @@ class MultiHeadAttention(nn.Module):
 
         self.qty_head = qty_head
         self.dim_k = dim_k
-        self.dim_k = dim_v
+        self.dim_v = dim_v
+        self.dim_model = dim_model
 
         self.weight_q = nn.Parameter(torch.FloatTensor(qty_head, dim_model, dim_k))
         self.weight_k = nn.Parameter(torch.FloatTensor(qty_head, dim_model, dim_k))
@@ -39,9 +41,9 @@ class MultiHeadAttention(nn.Module):
         # V vectors of each head are concatenated
         self.projection = nn.Linear(qty_head * dim_v, dim_model)
 
-        torch.nn.init.xavier_normal(self.weight_q)
-        torch.nn.init.xavier_normal(self.weight_k)
-        torch.nn.init.xavier_normal(self.weight_v)
+        torch.nn.init.xavier_normal_(self.weight_q)
+        torch.nn.init.xavier_normal_(self.weight_k)
+        torch.nn.init.xavier_normal_(self.weight_v)
 
     def forward(self, q, k, v):
         residual = q
@@ -114,11 +116,12 @@ def position_encoding_init(positions, dim_word_vector):
 class TransformerEncoder(nn.Module):
     ''' A neural network Transformer Encoder '''
 
-    def __init__(self, vocab_size, max_sequence_length, qty_encoder_layer=6, qty_attention_head=6,
-                 dim_k=64, dim_v=64, dim_word_vector=512, dim_model=512, dim_inner_hidden=1024):
+    def __init__(self, vocab_size, max_sequence_length, batch_size, qty_encoder_layer=6, qty_attention_head=8,
+                 dim_k=64, dim_v=64, dim_word_vector=128, dim_model=128, dim_inner_hidden=256, output_size=3):
         super(TransformerEncoder, self).__init__()
         positions = max_sequence_length + 1  # counting UNK
 
+        self.batch_size = batch_size
         self.max_sequence_length = max_sequence_length
         self.dim_model = dim_model
 
@@ -127,7 +130,7 @@ class TransformerEncoder(nn.Module):
         self.position_encoder.weight.data = position_encoding_init(positions, dim_word_vector)
 
         # Embedding vector of words. TODO: test with word2vec
-        self.word_embedding = nn.Embedding(vocab_size, dim_word_vector, padding_idx=0)
+        self.word_embedding_layer = nn.Embedding(vocab_size, dim_word_vector, padding_idx=0)
 
         # Create a set of encoder layers, given the quantity informed in
         self.encoder_layers = nn.ModuleList([
@@ -135,19 +138,31 @@ class TransformerEncoder(nn.Module):
             for _ in range(qty_encoder_layer)
         ])
 
-    def forward(self, input):
-        sequence, position = input
+        # Output layer, which convert the encoded tensors into the label representation.
+        self.output_layer = nn.Linear(max_sequence_length * dim_model, output_size)
 
+    def get_trainable_parameters(self):
+        ''' Avoid updating the position encoding '''
+        position_parameters = set(map(id, self.position_encoder.parameters()))
+        return (p for p in self.parameters() if id(p) not in position_parameters)
 
-class Neural(nn.Module):
-    ''' A neural network Transformer Encoder '''
+    def forward(self, sequence):
+        positions = self.get_positions(sequence)
+        # lookup word embedding layer
+        word_embedding = self.word_embedding_layer(sequence)
+        # lookup positional encoding
+        positional_encoding = self.position_encoder(positions)
 
-    def __init__(self):
-        super(Neural, self).__init__()
-        self.layer1 = nn.Linear(2, 2)
+        encoder_output = word_embedding + positional_encoding
+        for encoder_layer in self.encoder_layers:
+            encoder_output, attentions = encoder_layer(encoder_output)
 
-    def forward(self, input):
-        print(input)
-        a, b = input
-        print('sequence: ', a)
-        print('positional: ', b)
+        # batch size x number of classes
+        output = self.output_layer(encoder_output.view((self.batch_size, -1)))
+        # [probability of being the first class, probability of being the second class] thas why is two dimensional
+        return output
+
+    def get_positions(self, sequence):
+        PADDING = 0
+        positions = [[pos + 1 if word != PADDING else 0 for pos, word in enumerate(instance)] for instance in sequence]
+        return torch.autograd.Variable(torch.LongTensor(positions), volatile=False).cuda()

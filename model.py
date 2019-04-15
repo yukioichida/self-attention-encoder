@@ -116,12 +116,11 @@ def position_encoding_init(positions, dim_word_vector):
 class TransformerEncoder(nn.Module):
     ''' A neural network Transformer Encoder '''
 
-    def __init__(self, vocab_size, max_sequence_length, batch_size, qty_encoder_layer=6, qty_attention_head=8,
+    def __init__(self, vocab_size, max_sequence_length, qty_encoder_layer=1, qty_attention_head=2,
                  dim_k=64, dim_v=64, dim_word_vector=128, dim_model=128, dim_inner_hidden=256, output_size=3):
         super(TransformerEncoder, self).__init__()
         positions = max_sequence_length + 1  # counting UNK
 
-        self.batch_size = batch_size
         self.max_sequence_length = max_sequence_length
         self.dim_model = dim_model
 
@@ -154,11 +153,14 @@ class TransformerEncoder(nn.Module):
         positional_encoding = self.position_encoder(positions)
 
         encoder_output = word_embedding + positional_encoding
+
         for encoder_layer in self.encoder_layers:
             encoder_output, attentions = encoder_layer(encoder_output)
 
+        batch_size, q_len, dim_model = encoder_output.size()
+
         # batch size x number of classes
-        output = self.output_layer(encoder_output.view((self.batch_size, -1)))
+        output = self.output_layer(encoder_output.view((batch_size, -1)))
         # [probability of being the first class, probability of being the second class] thas why is two dimensional
         return output
 

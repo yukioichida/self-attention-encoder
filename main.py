@@ -22,14 +22,14 @@ print('labels ', len(label_field.vocab))
 print('Labels: ', label_field.vocab.itos)  # index to string
 
 
-batch_size = 12
+batch_size = 128
 
 train_iter, test_iter = data.BucketIterator.splits((train, test), batch_size=batch_size, device=device, repeat=False,
                                                    shuffle=False)
 
 vocab_size = len(sentence_field.vocab)
 
-model = model.TransformerEncoder(vocab_size, max_sequence_length, batch_size)
+model = model.TransformerEncoder(vocab_size, max_sequence_length)
 
 if device == 'cuda':
     print('using cuda')
@@ -41,7 +41,7 @@ optimizer = optim.Adam(learnable_params)
 optimizer.zero_grad()
 loss_function = F.cross_entropy
 
-epoch = 200
+epoch = 20
 
 print('current memory allocated: {}'.format(torch.cuda.memory_allocated() / 1024 ** 2))
 print('max memory allocated: {}'.format(torch.cuda.max_memory_allocated() / 1024 ** 2))

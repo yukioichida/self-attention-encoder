@@ -5,8 +5,8 @@ import torch.optim as optim
 import torch.nn.functional as F
 import model
 import time
+from config import *
 
-max_sequence_length = 200
 device = 'cuda'
 print("Loading IMDB dataset...")
 sentence_field = data.Field(lower=True, include_lengths=True, batch_first=True, fix_length=max_sequence_length)
@@ -15,19 +15,17 @@ label_field = data.Field(sequential=False)
 train, test = datasets.IMDB.splits(sentence_field, label_field)
 sentence_field.build_vocab(train)
 label_field.build_vocab(train)
-# print vocab information
-print('len(TEXT.vocab)', len(sentence_field.vocab))
-# print('TEXT.vocab.vectors.size()', sentence_field.vocab.vectors.size())
-print('labels ', len(label_field.vocab))
-print('Labels: ', label_field.vocab.itos)  # index to string
 
-
-batch_size = 128
 
 train_iter, test_iter = data.BucketIterator.splits((train, test), batch_size=batch_size, device=device, repeat=False,
-                                                   shuffle=False)
+                                                   shuffle=True)
 
 vocab_size = len(sentence_field.vocab)
+
+
+# print vocab information
+print('Vocab size: ', vocab_size)
+print('Labels: ', label_field.vocab.itos)  # index to string
 
 model = model.TransformerEncoder(vocab_size, max_sequence_length)
 
@@ -41,20 +39,16 @@ optimizer = optim.Adam(learnable_params)
 optimizer.zero_grad()
 loss_function = F.cross_entropy
 
-epoch = 20
 
 print('current memory allocated: {}'.format(torch.cuda.memory_allocated() / 1024 ** 2))
 print('max memory allocated: {}'.format(torch.cuda.max_memory_allocated() / 1024 ** 2))
 print('cached memory: {}'.format(torch.cuda.memory_cached() / 1024 ** 2))
 
-for i in range(epoch):
+for i in range(max_epoch):
     for epoch, batch in enumerate(train_iter):
         start = time.time()
         input_tensor = batch.text[0]
         predicted = model(input_tensor)
-        # print('predicted:', predicted)
-        #print("----------")
-        # print('label', batch.label)
         label = batch.label
         loss = loss_function(predicted, label)
 

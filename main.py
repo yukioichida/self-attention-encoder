@@ -6,9 +6,8 @@ import torch.nn.functional as F
 import model
 import time
 from log import logger
+from config import *
 
-
-max_sequence_length = 200
 device = 'cuda'
 logger.info("Loading IMDB dataset...")
 sentence_field = data.Field(lower=True, include_lengths=True, batch_first=True, fix_length=max_sequence_length)
@@ -24,12 +23,15 @@ logger.info('labels ', len(label_field.vocab))
 logger.info('Labels: ', label_field.vocab.itos)  # index to string
 
 
-batch_size = 128
-
 train_iter, test_iter = data.BucketIterator.splits((train, test), batch_size=batch_size, device=device, repeat=False,
-                                                   shuffle=False)
+                                                   shuffle=True)
 
 vocab_size = len(sentence_field.vocab)
+
+
+# print vocab information
+print('Vocab size: ', vocab_size)
+print('Labels: ', label_field.vocab.itos)  # index to string
 
 model = model.TransformerEncoder(vocab_size, max_sequence_length)
 
@@ -43,20 +45,16 @@ optimizer = optim.Adam(learnable_params)
 optimizer.zero_grad()
 loss_function = F.cross_entropy
 
-epoch = 20
 
 logger.info('current memory allocated: {}'.format(torch.cuda.memory_allocated() / 1024 ** 2))
 logger.info('max memory allocated: {}'.format(torch.cuda.max_memory_allocated() / 1024 ** 2))
 logger.info('cached memory: {}'.format(torch.cuda.memory_cached() / 1024 ** 2))
 
-for i in range(epoch):
+for i in range(max_epoch):
     for epoch, batch in enumerate(train_iter):
         start = time.time()
         input_tensor = batch.text[0]
         predicted = model(input_tensor)
-        # print('predicted:', predicted)
-        #print("----------")
-        # print('label', batch.label)
         label = batch.label
         loss = loss_function(predicted, label)
 

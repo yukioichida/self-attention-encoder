@@ -5,10 +5,12 @@ import torch.optim as optim
 import torch.nn.functional as F
 import model
 import time
+from log import logger
+
 
 max_sequence_length = 200
 device = 'cuda'
-print("Loading IMDB dataset...")
+logger.info("Loading IMDB dataset...")
 sentence_field = data.Field(lower=True, include_lengths=True, batch_first=True, fix_length=max_sequence_length)
 label_field = data.Field(sequential=False)
 
@@ -16,10 +18,10 @@ train, test = datasets.IMDB.splits(sentence_field, label_field)
 sentence_field.build_vocab(train)
 label_field.build_vocab(train)
 # print vocab information
-print('len(TEXT.vocab)', len(sentence_field.vocab))
+logger.info('len(TEXT.vocab)', len(sentence_field.vocab))
 # print('TEXT.vocab.vectors.size()', sentence_field.vocab.vectors.size())
-print('labels ', len(label_field.vocab))
-print('Labels: ', label_field.vocab.itos)  # index to string
+logger.info('labels ', len(label_field.vocab))
+logger.info('Labels: ', label_field.vocab.itos)  # index to string
 
 
 batch_size = 128
@@ -32,7 +34,7 @@ vocab_size = len(sentence_field.vocab)
 model = model.TransformerEncoder(vocab_size, max_sequence_length)
 
 if device == 'cuda':
-    print('using cuda')
+    logger.info('using cuda')
     model.cuda()
 
 model.train()
@@ -43,9 +45,9 @@ loss_function = F.cross_entropy
 
 epoch = 20
 
-print('current memory allocated: {}'.format(torch.cuda.memory_allocated() / 1024 ** 2))
-print('max memory allocated: {}'.format(torch.cuda.max_memory_allocated() / 1024 ** 2))
-print('cached memory: {}'.format(torch.cuda.memory_cached() / 1024 ** 2))
+logger.info('current memory allocated: {}'.format(torch.cuda.memory_allocated() / 1024 ** 2))
+logger.info('max memory allocated: {}'.format(torch.cuda.max_memory_allocated() / 1024 ** 2))
+logger.info('cached memory: {}'.format(torch.cuda.memory_cached() / 1024 ** 2))
 
 for i in range(epoch):
     for epoch, batch in enumerate(train_iter):
@@ -63,8 +65,8 @@ for i in range(epoch):
         optimizer.step()
         if epoch % 100 == 0:
             if torch.cuda.is_available():
-                print("%d iteration %d epoch with loss : %.5f in %.4f seconds" % (
+                logger.info("%d iteration %d epoch with loss : %.5f in %.4f seconds" % (
                     i, epoch, loss.cpu().item(), time.time() - start))
             else:
-                print("%d iteration %d epoch with loss : %.5f in %.4f seconds" % (
-                    i, epoch, loss.data.numpy()[0], time.time() - start))
+                logger.info(("%d iteration %d epoch with loss : %.5f in %.4f seconds" % (
+                    i, epoch, loss.data.numpy()[0], time.time() - start)))

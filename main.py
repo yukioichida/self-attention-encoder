@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import model
 import time
 from log import logger
-from config import max_sequence_length, max_epoch, encoder_layers, attention_heads
+from config import *
 
 device = 'cuda'
 logger.info("Loading IMDB dataset...")

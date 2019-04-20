@@ -117,7 +117,7 @@ class TransformerEncoder(nn.Module):
     ''' A neural network Transformer Encoder '''
 
     def __init__(self, vocab_size, max_sequence_length, qty_encoder_layer=1, qty_attention_head=2,
-                 dim_k=64, dim_v=64, dim_word_vector=128, dim_model=128, dim_inner_hidden=256, output_size=3):
+                 dim_k=32, dim_v=32, dim_word_vector=128, dim_model=128, dim_inner_hidden=256, output_size=3):
         super(TransformerEncoder, self).__init__()
         positions = max_sequence_length + 1  # counting UNK
 

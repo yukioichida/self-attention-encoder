@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import model
 import time
 from log import logger
-from config import *
+from config import max_sequence_length, max_epoch, encoder_layers, attention_heads
 
 device = 'cuda'
 logger.info("Loading IMDB dataset...")
@@ -16,24 +16,17 @@ label_field = data.Field(sequential=False)
 train, test = datasets.IMDB.splits(sentence_field, label_field)
 sentence_field.build_vocab(train)
 label_field.build_vocab(train)
-# print vocab information
-logger.info('len(TEXT.vocab)', len(sentence_field.vocab))
-# print('TEXT.vocab.vectors.size()', sentence_field.vocab.vectors.size())
-logger.info('labels ', len(label_field.vocab))
-logger.info('Labels: ', label_field.vocab.itos)  # index to string
-
 
 train_iter, test_iter = data.BucketIterator.splits((train, test), batch_size=batch_size, device=device, repeat=False,
                                                    shuffle=True)
 
 vocab_size = len(sentence_field.vocab)
 
+logger.info('vocab size: {}'.format(vocab_size))
 
-# print vocab information
-print('Vocab size: ', vocab_size)
-print('Labels: ', label_field.vocab.itos)  # index to string
-
-model = model.TransformerEncoder(vocab_size, max_sequence_length)
+model = model.TransformerEncoder(vocab_size, max_sequence_length,
+                                 qty_encoder_layer=encoder_layers,
+                                 qty_attention_head=attention_heads)
 
 if device == 'cuda':
     logger.info('using cuda')
@@ -55,8 +48,7 @@ for i in range(max_epoch):
         start = time.time()
         input_tensor = batch.text[0]
         predicted = model(input_tensor)
-        label = batch.label
-        loss = loss_function(predicted, label)
+        loss = loss_function(predicted, batch.label)
 
         loss.backward()
 
@@ -64,7 +56,7 @@ for i in range(max_epoch):
         if epoch % 100 == 0:
             if torch.cuda.is_available():
                 logger.info("%d iteration %d epoch with loss : %.5f in %.4f seconds" % (
-                    i, epoch, loss.cpu().item(), time.time() - start))
+                    i, i, loss.cpu().item(), time.time() - start))
             else:
                 logger.info(("%d iteration %d epoch with loss : %.5f in %.4f seconds" % (
                     i, epoch, loss.data.numpy()[0], time.time() - start)))

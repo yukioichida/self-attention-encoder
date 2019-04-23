@@ -2,3 +2,4 @@ numpy
 torch
 six
 torchtext
+pytorch-ignite

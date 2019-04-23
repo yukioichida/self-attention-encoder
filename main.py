@@ -8,7 +8,11 @@ import time
 from log import logger
 from config import *
 
-device = 'cuda'
+if torch.cuda.is_available():
+    device = 'cuda'
+else:
+    device = 'cpu'
+
 logger.info("Loading IMDB dataset...")
 sentence_field = data.Field(lower=True, include_lengths=True, batch_first=True, fix_length=max_sequence_length)
 label_field = data.Field(sequential=False)
@@ -28,9 +32,12 @@ model = model.TransformerEncoder(vocab_size, max_sequence_length,
                                  qty_encoder_layer=encoder_layers,
                                  qty_attention_head=attention_heads)
 
-if device == 'cuda':
+if torch.cuda.is_available():
     logger.info('using cuda')
     model.cuda()
+    logger.info('current memory allocated: {}'.format(torch.cuda.memory_allocated() / 1024 ** 2))
+    logger.info('max memory allocated: {}'.format(torch.cuda.max_memory_allocated() / 1024 ** 2))
+    logger.info('cached memory: {}'.format(torch.cuda.memory_cached() / 1024 ** 2))
 
 model.train()
 learnable_params = filter(lambda param: param.requires_grad, model.parameters())
@@ -38,10 +45,6 @@ optimizer = optim.Adam(learnable_params)
 optimizer.zero_grad()
 loss_function = F.cross_entropy
 
-
-logger.info('current memory allocated: {}'.format(torch.cuda.memory_allocated() / 1024 ** 2))
-logger.info('max memory allocated: {}'.format(torch.cuda.max_memory_allocated() / 1024 ** 2))
-logger.info('cached memory: {}'.format(torch.cuda.memory_cached() / 1024 ** 2))
 
 for i in range(max_epoch):
     for epoch, batch in enumerate(train_iter):

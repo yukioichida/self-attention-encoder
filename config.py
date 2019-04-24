@@ -1,8 +1,8 @@
-max_sequence_length = 200
-qtd_encoder_layer = 6
-batch_size = 128
-max_epoch = 20
+MAX_SEQUENCE_LENGTH = 200
+QTD_ENCODER_LAYER = 6
+BATCH_SIZE = 1
+MAX_EPOCH = 20
 
-attention_heads = 8
-encoder_layers = 6
-ff_hidden_state = 512
+ATTENTION_HEADS = 8
+ENCODER_LAYERS = 6
+FF_HIDDEN_STATE = 512

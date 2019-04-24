@@ -150,6 +150,7 @@ class TransformerEncoder(nn.Module):
         # lookup word embedding layer
         word_embedding = self.word_embedding_layer(sequence)
         # lookup positional encoding
+        print(positions)
         positional_encoding = self.position_encoder(positions)
 
         encoder_output = word_embedding + positional_encoding
@@ -166,5 +167,7 @@ class TransformerEncoder(nn.Module):
 
     def get_positions(self, sequence):
         PADDING = 0
+        print(sequence)
         positions = [[pos + 1 if word != PADDING else 0 for pos, word in enumerate(instance)] for instance in sequence]
+        print(type(positions))
         return torch.autograd.Variable(torch.LongTensor(positions), volatile=False)

@@ -14,23 +14,23 @@ else:
     device = 'cpu'
 
 logger.info("Loading IMDB dataset...")
-sentence_field = data.Field(lower=True, include_lengths=True, batch_first=True, fix_length=max_sequence_length)
+sentence_field = data.Field(lower=True, include_lengths=True, batch_first=True, fix_length=MAX_SEQUENCE_LENGTH)
 label_field = data.Field(sequential=False)
 
 train, test = datasets.IMDB.splits(sentence_field, label_field)
 sentence_field.build_vocab(train)
 label_field.build_vocab(train)
 
-train_iter, test_iter = data.BucketIterator.splits((train, test), batch_size=batch_size, device=device, repeat=False,
+train_iter, test_iter = data.BucketIterator.splits((train, test), batch_size=BATCH_SIZE, device=device, repeat=False,
                                                    shuffle=True)
 
 vocab_size = len(sentence_field.vocab)
 
 logger.info('vocab size: {}'.format(vocab_size))
 
-model = model.TransformerEncoder(vocab_size, max_sequence_length,
-                                 qty_encoder_layer=encoder_layers,
-                                 qty_attention_head=attention_heads)
+model = model.TransformerEncoder(vocab_size, MAX_SEQUENCE_LENGTH,
+                                 qty_encoder_layer=ENCODER_LAYERS,
+                                 qty_attention_head=ATTENTION_HEADS)
 
 if torch.cuda.is_available():
     logger.info('using cuda')
@@ -46,7 +46,7 @@ optimizer.zero_grad()
 loss_function = F.cross_entropy
 
 
-for i in range(max_epoch):
+for i in range(MAX_EPOCH):
     for epoch, batch in enumerate(train_iter):
         start = time.time()
         input_tensor = batch.text[0]

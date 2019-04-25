@@ -1,18 +1,18 @@
-from torchtext import data
-import torch
-from torchtext import datasets
-import torch.optim as optim
-import torch.nn.functional as F
-import model
-import time
-from log import logger
-from config import *
 import random
 
+import torch
+import torch.nn.functional as F
+import torch.optim as optim
+from torch.nn.utils import clip_grad
+from ignite.contrib.handlers import ProgressBar
 from ignite.engine import Engine, Events
 from ignite.metrics import Accuracy, Loss, RunningAverage
-from ignite.handlers import ModelCheckpoint, EarlyStopping
-from ignite.contrib.handlers import ProgressBar
+from torchtext import data
+from torchtext import datasets
+
+import model
+from config import *
+from log import logger
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -70,6 +70,7 @@ def process_function(engine, batch):
     y_pred = model(x)
     loss = loss_function(y_pred, y)
     loss.backward()
+    clip_grad(model.parameters(), 1.0)
     optimizer.step()
     return loss.item()
 

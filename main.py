@@ -7,6 +7,7 @@ import model
 import time
 from log import logger
 from config import *
+from torch.nn.utils import clip_grad_norm_
 
 if torch.cuda.is_available():
     device = 'cuda'

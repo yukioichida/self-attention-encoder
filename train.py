@@ -14,10 +14,7 @@ from ignite.metrics import Accuracy, Loss, RunningAverage
 from ignite.handlers import ModelCheckpoint, EarlyStopping
 from ignite.contrib.handlers import ProgressBar
 
-if torch.cuda.is_available():
-    device = 'cuda'
-else:
-    device = 'cpu'
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 SEED = 1234
 torch.manual_seed(SEED)
@@ -43,10 +40,11 @@ vocab_size = len(sentence_field.vocab)
 
 logger.info('vocab size: {}'.format(vocab_size))
 
-model = model.TransformerEncoder(vocab_size, QTD_ENCODER_LAYER,
-                                 qty_encoder_layer=ENCODER_LAYERS,
+model = model.TransformerEncoder(vocab_size, MAX_SEQUENCE_LENGTH,
+                                 qty_encoder_layer=QTD_ENCODER_LAYER,
                                  qty_attention_head=ATTENTION_HEADS)
 
+model.to(device)
 if torch.cuda.is_available():
     logger.info('using cuda')
     logger.info('current memory allocated: {}'.format(torch.cuda.memory_allocated() / 1024 ** 2))
@@ -55,7 +53,6 @@ if torch.cuda.is_available():
 else:
     print("cpu")
 
-model.to(device)
 
 model.train()
 learnable_params = filter(lambda param: param.requires_grad, model.parameters())

@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
+from log import logger
 import math
 
 
@@ -139,9 +140,15 @@ class TransformerEncoder(nn.Module):
 
         # Output layer, which convert the encoded tensors into the label representation.
         self.output_layer = nn.Linear(max_sequence_length * dim_model, output_size)
+        logger.info('''
+                    Transformer Model:
+                    - max sequence length = {}
+                    - encoder layers = {}
+                    - attention heads = {}
+                    '''.format(max_sequence_length, qty_encoder_layer, qty_attention_head))
 
     def get_trainable_parameters(self):
-        ''' Avoid updating the position encoding '''
+        """ Avoid updating the position encoding """
         position_parameters = set(map(id, self.position_encoder.parameters()))
         return (p for p in self.parameters() if id(p) not in position_parameters)
 
@@ -150,7 +157,6 @@ class TransformerEncoder(nn.Module):
         # lookup word embedding layer
         word_embedding = self.word_embedding_layer(sequence)
         # lookup positional encoding
-        print(positions)
         positional_encoding = self.position_encoder(positions)
 
         encoder_output = word_embedding + positional_encoding
@@ -162,12 +168,20 @@ class TransformerEncoder(nn.Module):
 
         # batch size x number of classes
         output = self.output_layer(encoder_output.view((batch_size, -1)))
-        # [probability of being the first class, probability of being the second class] thas why is two dimensional
+        # [probability of being the first class, probability of being the second class] thats why is two dimensional
         return output
 
     def get_positions(self, sequence):
+
+        """
+            Get position
+        :param sequence: input tensor
+        :return: array with the order of each element. Example: [23, 45, 67, 54, PAD, PAD] ---> [1, 2, 3, 4, 0, 0]
+        """
+
         PADDING = 0
-        print(sequence)
         positions = [[pos + 1 if word != PADDING else 0 for pos, word in enumerate(instance)] for instance in sequence]
-        print(type(positions))
-        return torch.autograd.Variable(torch.LongTensor(positions), volatile=False)
+        if torch.cuda.is_available():
+            return torch.autograd.Variable(torch.LongTensor(positions), volatile=False).cuda()
+        else:
+            return torch.autograd.Variable(torch.LongTensor(positions), volatile=False)

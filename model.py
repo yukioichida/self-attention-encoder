@@ -140,8 +140,7 @@ class TransformerEncoder(nn.Module):
 
         # Output layer, which convert the encoded tensors into the label representation.
         self.output_layer = nn.Linear(max_sequence_length * dim_model, output_size)
-        logger.info('''
-                    Transformer Model:
+        logger.info('''Transformer Model:
                     - max sequence length = {}
                     - encoder layers = {}
                     - attention heads = {}

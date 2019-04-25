@@ -51,8 +51,7 @@ if torch.cuda.is_available():
     logger.info('max memory allocated: {}'.format(torch.cuda.max_memory_allocated() / 1024 ** 2))
     logger.info('cached memory: {}'.format(torch.cuda.memory_cached() / 1024 ** 2))
 else:
-    print("cpu")
-
+    logger.info("using cpu")
 
 model.train()
 learnable_params = filter(lambda param: param.requires_grad, model.parameters())

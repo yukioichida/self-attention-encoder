@@ -77,7 +77,7 @@ def process_function(engine, batch):
 def eval_function(engine, batch):
     model.eval()
     with torch.no_grad():
-        x, y = batch.text, batch.label
+        x, y = batch.text[0], batch.label
         y_pred = model(x)
         return y_pred, y
 

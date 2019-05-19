@@ -50,7 +50,8 @@ model = model.to(device)
 learnable_params = filter(lambda param: param.requires_grad, model.parameters())
 optimizer = optim.Adam(learnable_params)
 optimizer.zero_grad()
-loss_function = F.cross_entropy
+loss_function = torch.nn.CrossEntropyLoss()
+loss_function = loss_function.to(device)
 
 
 def process_function(engine, batch):

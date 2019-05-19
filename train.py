@@ -27,7 +27,7 @@ label_field = data.Field(sequential=False)
 train_data, test_data = datasets.IMDB.splits(sentence_field, label_field)
 train_data, valid_data = train_data.split(split_ratio=0.8, random_state=random.seed(SEED))
 
-sentence_field.build_vocab(train_data)
+sentence_field.build_vocab(train_data, max_size=MAX_VOCAB_SIZE)
 label_field.build_vocab(train_data)
 
 train_iter, valid_iter, test_iter = data.BucketIterator.splits((train_data, valid_data, test_data),
@@ -37,23 +37,16 @@ train_iter, valid_iter, test_iter = data.BucketIterator.splits((train_data, vali
                                                                shuffle=True)
 
 vocab_size = len(sentence_field.vocab)
+output_size = len(label_field.vocab)
 
 logger.info('vocab size: {}'.format(vocab_size))
+logger.info('output size: {}'.format(output_size))
 
 model = model.TransformerEncoder(vocab_size, MAX_SEQUENCE_LENGTH,
                                  qty_encoder_layer=QTD_ENCODER_LAYER,
-                                 qty_attention_head=ATTENTION_HEADS)
-
-model.to(device)
-if torch.cuda.is_available():
-    logger.info('using cuda')
-    logger.info('current memory allocated: {}'.format(torch.cuda.memory_allocated() / 1024 ** 2))
-    logger.info('max memory allocated: {}'.format(torch.cuda.max_memory_allocated() / 1024 ** 2))
-    logger.info('cached memory: {}'.format(torch.cuda.memory_cached() / 1024 ** 2))
-else:
-    logger.info("using cpu")
-
-model.train()
+                                 qty_attention_head=ATTENTION_HEADS,
+                                 output_size=output_size)
+model = model.to(device)
 learnable_params = filter(lambda param: param.requires_grad, model.parameters())
 optimizer = optim.Adam(learnable_params)
 optimizer.zero_grad()
@@ -134,40 +127,22 @@ trainer.add_event_handler(Events.EPOCH_COMPLETED, log_validation_results)
 trainer.run(train_iter, max_epochs=MAX_EPOCH)
 
 
-def binary_accuracy(preds, y):
-    """
-    Returns accuracy per batch, i.e. if you get 8/10 right, this returns 0.8, NOT 8
-    """
-
-    # round predictions to the closest integer
-    rounded_preds = torch.round(torch.sigmoid(preds))
-    correct = (rounded_preds == y).float()  # convert into float for division
-    acc = correct.sum() / len(correct)
-    return acc
-
-
 def evaluate(iterator):
     epoch_loss = 0
-    epoch_acc = 0
 
     model.eval()
 
     with torch.no_grad():
         for batch in iterator:
-            text, text_lengths = batch.text
-
-            predictions = model(text).squeeze(1)
-
+            text = batch.text[0]
+            predictions = model(text)
             loss = loss_function(predictions, batch.label)
-
-            acc = binary_accuracy(predictions, batch.label)
-
             epoch_loss += loss.item()
-            epoch_acc += acc.item()
+    print('epoch_loss {}'.format(epoch_loss))
+    print('number of elements: {}'.format(len(iterator)))
+    return epoch_loss / len(iterator)
 
-    return epoch_loss / len(iterator), epoch_acc / len(iterator)
 
+test_loss = evaluate(test_iter)
 
-test_loss, test_acc = evaluate(test_iter)
-
-print("Test Loss: %02d | Test Acc: %02d" % (test_loss, test_acc))
+print("Test Loss: %04fgit d" % test_loss)

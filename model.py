@@ -180,7 +180,5 @@ class TransformerEncoder(nn.Module):
 
         PADDING = 0
         positions = [[pos + 1 if word != PADDING else 0 for pos, word in enumerate(instance)] for instance in sequence]
-        if torch.cuda.is_available():
-            return torch.autograd.Variable(torch.LongTensor(positions), volatile=False).cuda()
-        else:
-            return torch.autograd.Variable(torch.LongTensor(positions), volatile=False)
+        return torch.autograd.Variable(torch.LongTensor(positions), volatile=False).cuda()
+

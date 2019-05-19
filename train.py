@@ -170,4 +170,4 @@ def evaluate(iterator):
 
 test_loss, test_acc = evaluate(test_iter)
 
-print(f'Test Loss: {test_loss:.3f} | Test Acc: {test_acc * 100:.2f}%')
+print("Test Loss: %02d | Test Acc: %02d" % (test_loss, test_acc))

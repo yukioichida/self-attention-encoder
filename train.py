@@ -3,7 +3,7 @@ import random
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-from torch.nn.utils import clip_grad
+from torch.nn.utils import clip_grad_norm
 from ignite.contrib.handlers import ProgressBar
 from ignite.engine import Engine, Events
 from ignite.metrics import Accuracy, Loss, RunningAverage
@@ -70,7 +70,7 @@ def process_function(engine, batch):
     y_pred = model(x)
     loss = loss_function(y_pred, y)
     loss.backward()
-    clip_grad(model.parameters(), 1.0)
+    clip_grad_norm(model.parameters(), 1.0)
     optimizer.step()
     return loss.item()
 
